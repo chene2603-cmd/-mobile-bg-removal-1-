@@ -1,0 +1,10 @@
+tmp_
+temp_
+~
+.bak
+.old
+_backup
+废弃
+暂存
+副本
+临时
