@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mobile-bg-removal"
+version = "0.1.0"
+description = "A professional toolkit for mobile-oriented background removal with built-in evaluation and benchmarking."
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0",
+    "torchvision",
+    "transformers",
+    "pillow",
+    "opencv-python-headless",
+    "numpy",
+    "onnx",
+    "onnxruntime",
+    "onnxruntime-tools ; platform_system == 'Linux' or platform_system == 'Darwin'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "gradio"]
+demo = ["gradio"]
+
+[project.scripts]
+bg-remove = "bg_remover.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["bg_remover*", "analyzer*", "mobile*", "collector*"]
