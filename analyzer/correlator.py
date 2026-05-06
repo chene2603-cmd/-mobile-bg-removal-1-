@@ -1,45 +1,43 @@
-from typing import List, Dict
-from common.logger import setup_logger
+from pathlib import Path
+import json
+from datetime import datetime
+from analyzer.shishen_scorer import batch_score_from_log, rank_results
 
-class Correlator:
-    """跨事实关联推理（如临时文件 + 空表 = 设计混乱）"""
-    
-    def __init__(self):
-        self.logger = setup_logger("Correlator")
-    
-    def run(self, facts: List[Dict], issues: List[Dict]) -> List[Dict]:
-        """执行关联分析，返回关联发现列表"""
-        correlations = []
-        
-        # 关联1：大量临时文件 + 空表 → 数据治理缺失
-        temp_count = len([f for f in facts if f.get('type') == 'temp_file'])
-        empty_table_count = len([f for f in facts if f.get('type') == 'unused_table'])
-        if temp_count > 50 and empty_table_count > 5:
-            correlations.append({
-                "type": "data_governance_gap",
-                "description": f"临时文件({temp_count})与空表({empty_table_count})同时大量存在，表明缺乏数据生命周期管理",
-                "recommendation": "建立数据清理策略和自动化归档流程"
-            })
-        
-        # 关联2：高频错误 + 老旧PLC → 设备老化导致稳定性下降
-        high_freq_errors = [f for f in facts if f.get('type') == 'high_freq_error']
-        old_plc_files = [f for f in facts if f.get('type') == 'old_unused_file' and 'plc' in f.get('path', '').lower()]
-        if high_freq_errors and old_plc_files:
-            correlations.append({
-                "type": "aging_instability",
-                "description": f"高频错误({len(high_freq_errors)}种)与老旧PLC相关文件({len(old_plc_files)}个)并存，可能设备老化导致",
-                "recommendation": "制定PLC升级或替换计划，并监控错误趋势"
-            })
-        
-        # 关联3：非工作时间操作 + 影子IT → 可能存在规避正规流程的行为
-        off_hours = [f for f in facts if f.get('type') == 'off_hours_access']
-        shadow_it = [f for f in facts if f.get('type') == 'shadow_it_indicator']
-        if off_hours and shadow_it:
-            correlations.append({
-                "type": "process_bypass",
-                "description": f"非工作时间操作({len(off_hours)}次)与影子IT迹象({len(shadow_it)}个)同时出现，可能存在规避正规运维流程的行为",
-                "recommendation": "审计相关脚本和计划任务，强化变更管理流程"
-            })
-        
-        self.logger.info(f"关联分析完成，发现 {len(correlations)} 条关联")
-        return correlations
+def generate_report(log_file: str, output_report: str = None):
+    """
+    生成 Markdown 评估报告
+    """
+    scored = batch_score_from_log(log_file)
+    ranked = rank_results(scored)
+
+    if output_report is None:
+        output_report = f"evaluation_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+
+    lines = []
+    lines.append("# 背景移除评估报告\n")
+    lines.append(f"**生成时间**：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    lines.append(f"**数据来源**：`{log_file}`\n")
+    lines.append(f"**评估图片数量**：{len(ranked)}\n")
+
+    lines.append("## 综合排名\n")
+    lines.append("| 排名 | 输入图片 | 推理设备 | 推理时间 (s) | 总分 | 二元性 | 锐度 | 覆盖度 | 性能分 |")
+    lines.append("|------|----------|----------|--------------|------|--------|------|--------|--------|")
+    for i, item in enumerate(ranked, 1):
+        s = item['scores']
+        lines.append(f"| {i} | {Path(item['input']).name} | {item['device']} | {item['inference_time_sec']:.2f} | "
+                     f"{s['total']:.2f} | {s['binary']:.2f} | {s['sharpness']:.2f} | {s['coverage']:.2f} | {s['performance']:.2f} |")
+
+    # 分数解释
+    lines.append("\n## 指标说明\n")
+    lines.append("- **二元性**：mask 值集中程度，越接近黑白（非灰色）得分越高。")
+    lines.append("- **锐度**：前景边缘的清晰度，发丝等细节保留越好得分越高。")
+    lines.append("- **覆盖度**：前景面积合理性，避免漏抠或全图无背景。")
+    lines.append("- **性能分**：推理时间评分，≤1s 满分。")
+    lines.append("- **总分** = 0.35×二元性 + 0.35×锐度 + 0.2×覆盖度 + 0.1×性能\n")
+
+    # 写入文件
+    with open(output_report, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines))
+
+    print(f"报告已生成：{output_report}")
+    return ranked
