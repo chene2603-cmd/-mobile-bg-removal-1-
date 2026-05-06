@@ -1,3 +1,3 @@
-# 第一层无依赖，第二层可选依赖
-# 如需 Access/SQL Server 扫描，安装 pyodbc
+# 第一、二层无额外依赖（pyodbc 可选，第三层 pywin32 可选）
 pyodbc>=5.0.0
+pywin32>=306   # 用于 Windows 事件日志，若无需可注释
