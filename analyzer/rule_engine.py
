@@ -1,0 +1,140 @@
+import re
+from typing import List, Dict, Any
+from collections import Counter
+from common.logger import setup_logger
+
+class RuleEngine:
+    """规则引擎：加载事实，匹配规则，产生问题点"""
+    
+    def __init__(self):
+        self.logger = setup_logger("RuleEngine")
+        self.rules = []  # 每个规则: (name, severity, condition_func, impact_template)
+        self._register_default_rules()
+    
+    def _register_default_rules(self):
+        # 规则1：大量临时文件（> 100个）
+        def temp_file_rule(facts):
+            temp_facts = [f for f in facts if f.get('type') == 'temp_file']
+            count = len(temp_facts)
+            if count > 100:
+                return {
+                    "severity": "P1",
+                    "description": f"发现 {count} 个临时文件，占用存储空间且混乱",
+                    "business_impact": f"预计手工清理耗时{count//10}人时，增加查找有效文件的难度",
+                    "facts_refs": [f['path'] for f in temp_facts[:10]]
+                }
+            return None
+        self.rules.append(("大量临时文件", temp_file_rule))
+        
+        # 规则2：老旧未使用文件（超过3年未修改）
+        def old_file_rule(facts):
+            old_facts = [f for f in facts if f.get('type') == 'old_unused_file']
+            count = len(old_facts)
+            if count > 50:
+                return {
+                    "severity": "P2",
+                    "description": f"发现 {count} 个超过3年未修改的文件，可能是僵尸数据",
+                    "business_impact": "占用备份空间，可能包含过时信息导致误用",
+                    "facts_refs": [f['path'] for f in old_facts[:10]]
+                }
+            return None
+        self.rules.append(("老旧僵尸文件", old_file_rule))
+        
+        # 规则3：空表过多
+        def empty_table_rule(facts):
+            empty_tables = [f for f in facts if f.get('type') == 'unused_table']
+            count = len(empty_tables)
+            if count > 10:
+                return {
+                    "severity": "P1",
+                    "description": f"发现 {count} 个空表，数据库设计混乱",
+                    "business_impact": "增加维护复杂度和查询混淆",
+                    "facts_refs": [f"{f['db_path']}::{f['table_name']}" for f in empty_tables[:5]]
+                }
+            return None
+        self.rules.append(("数据库空表", empty_table_rule))
+        
+        # 规则4：表命名违规
+        def naming_violation_rule(facts):
+            violations = [f for f in facts if f.get('type') == 'naming_violation']
+            count = len(violations)
+            if count > 5:
+                return {
+                    "severity": "P2",
+                    "description": f"发现 {count} 个表命名不规范（含中文或临时关键词）",
+                    "business_impact": "增加后续开发理解成本，易出错",
+                    "facts_refs": [f"{f['table_name']} in {f['db_path']}" for f in violations[:5]]
+                }
+            return None
+        self.rules.append(("命名违规", naming_violation_rule))
+        
+        # 规则5：高频错误（日志）
+        def high_freq_error_rule(facts):
+            high_freq = [f for f in facts if f.get('type') == 'high_freq_error']
+            count = len(high_freq)
+            if count > 0:
+                details = high_freq[0]['details']
+                return {
+                    "severity": "P0" if details.get('occurrences', 0) > 10 else "P1",
+                    "description": f"发现 {count} 种高频错误，其中最高频次 {details.get('occurrences', 0)} 次",
+                    "business_impact": "可能导致系统不稳定或重复停机",
+                    "facts_refs": [f['source'] for f in high_freq[:3]]
+                }
+            return None
+        self.rules.append(("高频错误", high_freq_error_rule))
+        
+        # 规则6：非工作时间异常操作
+        def off_hours_rule(facts):
+            off_hours = [f for f in facts if f.get('type') == 'off_hours_access']
+            count = len(off_hours)
+            if count > 5:
+                return {
+                    "severity": "P1",
+                    "description": f"发现 {count} 次非工作时间异常操作事件",
+                    "business_impact": "可能存在安全风险或非授权运维",
+                    "facts_refs": [f['source'] for f in off_hours[:5]]
+                }
+            return None
+        self.rules.append(("非工作时间异常", off_hours_rule))
+        
+        # 规则7：影子IT迹象
+        def shadow_it_rule(facts):
+            shadow = [f for f in facts if f.get('type') == 'shadow_it_indicator']
+            count = len(shadow)
+            if count > 3:
+                return {
+                    "severity": "P1",
+                    "description": f"发现 {count} 个影子IT痕迹（共享目录中的脚本文件）",
+                    "business_impact": "可能导致数据不一致或安全漏洞",
+                    "facts_refs": [f['source'] for f in shadow[:5]]
+                }
+            return None
+        self.rules.append(("影子IT迹象", shadow_it_rule))
+        
+        # 规则8：空文件夹
+        def empty_dir_rule(facts):
+            empty = [f for f in facts if f.get('type') == 'empty_directory']
+            count = len(empty)
+            if count > 20:
+                return {
+                    "severity": "P3",
+                    "description": f"发现 {count} 个空文件夹",
+                    "business_impact": "目录结构混乱，增加导航难度",
+                    "facts_refs": [f['path'] for f in empty[:5]]
+                }
+            return None
+        self.rules.append(("空文件夹", empty_dir_rule))
+    
+    def run(self, facts: List[Dict]) -> List[Dict]:
+        """对事实列表应用所有规则，返回问题列表"""
+        issues = []
+        for rule_name, rule_func in self.rules:
+            try:
+                result = rule_func(facts)
+                if result:
+                    result['rule_name'] = rule_name
+                    issues.append(result)
+                    self.logger.info(f"规则触发: {rule_name} (严重程度: {result['severity']})")
+            except Exception as e:
+                self.logger.error(f"规则 {rule_name} 执行失败: {e}")
+        return issues
