@@ -1,0 +1,3 @@
+{"layer": "collection", "scanner": "file_system", "type": "temp_file", "timestamp": "2026-02-08T14:30:22.123456", "path": "D:\\shared\\tmp_2023.xlsx", "details": {"size_bytes": 45056, "mtime": "2023-05-10T09:23:45"}}
+{"layer": "collection", "scanner": "file_system", "type": "old_unused_file", "timestamp": "2026-02-08T14:30:22.234567", "path": "D:\\shared\\backup\\old_report.doc", "details": {"size_bytes": 123456, "last_modified_years": 4.2, "mtime": "2021-12-01T08:00:00"}}
+{"layer": "collection", "scanner": "file_system", "type": "empty_directory", "timestamp": "2026-02-08T14:30:25.345678", "path": "D:\\shared\\废弃", "details": {}}
