@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>工厂屎山治理报告 - {{ report_date }}</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; margin: 20px; background: #f5f7fa; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 30px; border-radius: 8px; }
+        h1 { color: #2c3e50; border-left: 5px solid #FF6B6B; padding-left: 20px; }
+        h2 { color: #34495e; margin-top: 30px; border-bottom: 2px solid #FFD166; padding-bottom: 5px; }
+        .index-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; }
+        .index-number { font-size: 48px; font-weight: bold; }
+        .severity-P0 { color: #FF6B6B; font-weight: bold; }
+        .severity-P1 { color: #FF9F43; }
+        .severity-P2 { color: #FFD166; }
+        .issue-card { background: #f8f9fa; border-left: 4px solid; margin: 15px 0; padding: 15px; border-radius: 6px; }
+        .issue-card.severity-P0 { border-left-color: #FF6B6B; }
+        .issue-card.severity-P1 { border-left-color: #FF9F43; }
+        .issue-card.severity-P2 { border-left-color: #FFD166; }
+        .issue-card.severity-P3 { border-left-color: #06D6A0; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .badge-P0 { background: #FF6B6B; color: white; }
+        .badge-P1 { background: #FF9F43; color: white; }
+        .roadmap-phase { background: #e9ecef; margin: 20px 0; padding: 15px; border-radius: 8px; }
+        .phase-title { font-size: 18px; font-weight: bold; color: #118AB2; }
+        .chart-container { margin: 30px 0; text-align: center; }
+        .chart-container img { max-width: 100%; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #34495e; color: white; }
+        .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #7f8c8d; border-top: 1px solid #ecf0f1; padding-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🏭 工厂屎山治理报告</h1>
+    <p>生成时间：{{ report_date }} | 扫描路径：{{ scan_path }}</p>
+    
+    <div class="index-box">
+        <div class="index-number">{{ shishan_index }} / 100</div>
+        <div>屎山指数 - {{ grade }}</div>
+        <div style="font-size: 14px; margin-top: 10px;">P0:{{ breakdown.P0 }} | P1:{{ breakdown.P1 }} | P2:{{ breakdown.P2 }} | P3:{{ breakdown.P3 }}</div>
+    </div>
+    
+    <h2>📌 问题概览（屎山地图）</h2>
+    <table>
+        <tr><th>规则名称</th><th>严重程度</th><th>问题描述</th><th>业务影响</th></tr>
+        {% for issue in issues %}
+        <tr>
+            <td>{{ issue.rule_name }}</td>
+            <td><span class="badge badge-{{ issue.severity }}">{{ issue.severity }}</span></td>
+            <td>{{ issue.description }}</td>
+            <td>{{ issue.business_impact }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <h2>📊 根本原因分析（三段检测结果）</h2>
+    <div class="chart-container">
+        <img src="{{ charts.heatmap }}" alt="问题热力图">
+        <p style="margin-top: 10px;">▲ 各区域问题分布热力图</p>
+    </div>
+    <div class="chart-container">
+        <img src="{{ charts.fishbone }}" alt="根因鱼骨图">
+        <p>▲ 根因分析（人机料法环）</p>
+    </div>
+    
+    <h2>🔗 系统依赖关系与脆弱节点</h2>
+    <div class="chart-container">
+        <img src="{{ charts.dependency }}" alt="系统依赖图">
+        <p>▲ 系统依赖关系图（红色节点为高风险）</p>
+    </div>
+    
+    <h2>📈 屎山指数趋势</h2>
+    <div class="chart-container">
+        <img src="{{ charts.trend }}" alt="趋势图">
+        <p>▲ 历史趋势（本次扫描为最新点）</p>
+    </div>
+    
+    <h2>🧹 清理优先级与行动项</h2>
+    {% for phase in roadmap %}
+    <div class="roadmap-phase">
+        <div class="phase-title">{{ phase.name }}</div>
+        <div>预期时长：{{ phase.duration }}</div>
+        <div>行动项：</div>
+        <ul>
+        {% for action in phase.actions %}
+            <li>{{ action }}</li>
+        {% endfor %}
+        </ul>
+        <div>预期收益：{{ phase.benefit }}</div>
+    </div>
+    {% endfor %}
+    
+    <h2>💡 关联发现与建议</h2>
+    <ul>
+    {% for corr in correlations %}
+        <li><strong>{{ corr.type }}</strong>：{{ corr.description }}<br>建议：{{ corr.recommendation }}</li>
+    {% endfor %}
+    </ul>
+    
+    <div class="footer">
+        本报告由工厂屎山挖掘系统自动生成，基于实际扫描数据。建议结合现场情况制定详细治理计划。
+    </div>
+</div>
+</body>
+</html>
