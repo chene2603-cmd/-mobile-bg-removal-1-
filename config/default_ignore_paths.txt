@@ -1,0 +1,9 @@
+$Recycle.Bin
+System Volume Information
+Windows
+Program Files
+Program Files (x86)
+.git
+.svn
+__pycache__
+node_modules
