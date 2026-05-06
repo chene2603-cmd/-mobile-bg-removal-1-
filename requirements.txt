@@ -1,3 +1,4 @@
-# 第一、二层无额外依赖（pyodbc 可选，第三层 pywin32 可选）
-pyodbc>=5.0.0
-pywin32>=306   # 用于 Windows 事件日志，若无需可注释
+torch>=2.0
+torchvision
+transformers
+Pillow
